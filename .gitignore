@@ -1,0 +1,33 @@
+# Rust / Anchor
+target/
+.anchor/
+test-ledger/
+**/*.rs.bk
+
+# Node
+node_modules/
+.app/node_modules/
+app/node_modules/
+.next/
+app/.next/
+app/.open-next/
+app/.wrangler/
+dist/
+build/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+id.json
+*-keypair.json
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Logs
+*.log
+yarn-error.log
