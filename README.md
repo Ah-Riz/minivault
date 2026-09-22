@@ -88,6 +88,23 @@ npm run dev
 
 ## Deploy UI → Cloudflare Workers
 
+### CI (automatic)
+
+Pushes to `main` that touch `app/**` (or the workflow file) run [`.github/workflows/deploy-worker.yml`](.github/workflows/deploy-worker.yml) and deploy the Worker.
+
+Manual run: GitHub → **Actions** → **Deploy Worker** → **Run workflow**.
+
+Required repo secrets:
+
+| Secret | Purpose |
+|--------|---------|
+| `CLOUDFLARE_API_TOKEN` | API token with **Edit Cloudflare Workers** (create at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)) |
+| `CLOUDFLARE_ACCOUNT_ID` | `9566706794f5e710b31e54379c39f104` |
+
+Live URL: https://minivault.ahmadrizkimaulana666.workers.dev
+
+### Manual
+
 ```bash
 cd app
 npm run deploy
