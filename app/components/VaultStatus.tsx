@@ -25,41 +25,45 @@ export function VaultStatus({
   decimals?: number;
 }) {
   if (!vault) {
-    return <p className="text-sm text-zinc-500">Loading vault…</p>;
+    return <p className="text-sm text-muted">Loading vault…</p>;
   }
 
   if (!vault.exists) {
     return (
-      <div className="space-y-2 text-sm text-zinc-400">
+      <div className="space-y-2 text-sm text-muted">
         <p>No vault found for this mint on the configured cluster.</p>
-        <p className="font-mono text-xs text-zinc-500">mint {short(vault.mint)}</p>
+        <p className="font-mono text-xs">mint {short(vault.mint)}</p>
       </div>
     );
   }
 
   return (
-    <dl className="grid grid-cols-2 gap-3 text-sm">
-      <div>
-        <dt className="text-zinc-500">Status</dt>
-        <dd className={vault.paused ? "text-amber-300" : "text-emerald-300"}>
+    <dl className="grid grid-cols-2 gap-4 text-sm">
+      <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
+        <dt className="text-muted">Status</dt>
+        <dd className={vault.paused ? "font-semibold text-warning" : "font-semibold text-success"}>
           {vault.paused ? "Paused" : "Active"}
         </dd>
       </div>
-      <div>
-        <dt className="text-zinc-500">Total deposits</dt>
-        <dd className="font-mono">{formatRaw(vault.totalDeposits, decimals)}</dd>
+      <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
+        <dt className="text-muted">Total deposits</dt>
+        <dd className="nums font-mono font-semibold text-ink">
+          {formatRaw(vault.totalDeposits, decimals)}
+        </dd>
       </div>
-      <div>
-        <dt className="text-zinc-500">Your balance</dt>
-        <dd className="font-mono">{formatRaw(position?.amount ?? "0", decimals)}</dd>
+      <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
+        <dt className="text-muted">Your balance</dt>
+        <dd className="nums font-mono font-semibold text-ink">
+          {formatRaw(position?.amount ?? "0", decimals)}
+        </dd>
       </div>
-      <div>
-        <dt className="text-zinc-500">Authority</dt>
-        <dd className="font-mono">{short(vault.authority)}</dd>
+      <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
+        <dt className="text-muted">Authority</dt>
+        <dd className="font-mono text-ink">{short(vault.authority)}</dd>
       </div>
-      <div className="col-span-2">
-        <dt className="text-zinc-500">Mint</dt>
-        <dd className="break-all font-mono text-xs">{vault.mint}</dd>
+      <div className="col-span-2 rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
+        <dt className="text-muted">Mint</dt>
+        <dd className="break-all font-mono text-xs text-ink">{vault.mint}</dd>
       </div>
     </dl>
   );

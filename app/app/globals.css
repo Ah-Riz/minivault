@@ -1,3 +1,180 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-tosca-500: #14b8a6;
+  --color-tosca-600: #0d9488;
+  --color-tosca-700: #0f766e;
+  --color-surface: #f0f4f8;
+  --color-surface-elevated: #ffffff;
+  --color-surface-flat: #ffffff;
+  --color-secondary: #e8eef4;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --shadow-elev-1: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-elev-2: 0 4px 12px rgb(15 23 42 / 0.1), 0 2px 4px rgb(15 23 42 / 0.06);
+  --radius-md: 0.75rem;
+  --border-subtle: rgb(15 23 42 / 0.1);
+  --focus-ring: 2px solid var(--color-tosca-500);
+  --focus-offset: 2px;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .elev {
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-elev-1);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: calc(var(--radius-md) * 0.85);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: box-shadow 150ms ease, transform 100ms ease, background-color 150ms ease;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn:not(:disabled):hover {
+    box-shadow: var(--shadow-elev-2);
+  }
+
+  .btn:not(:disabled):active {
+    transform: translateY(1px);
+  }
+
+  .btn-primary {
+    background: var(--color-tosca-700);
+    color: #fff;
+    border: 1px solid transparent;
+  }
+
+  .btn-primary:not(:disabled):hover {
+    background: var(--color-tosca-600);
+  }
+
+  .btn-secondary {
+    background: var(--color-surface-elevated);
+    color: var(--color-ink);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-elev-1);
+  }
+
+  .btn-warning {
+    background: var(--color-surface-elevated);
+    color: var(--color-warning);
+    border: 1px solid rgb(217 119 6 / 0.35);
+    box-shadow: var(--shadow-elev-1);
+  }
+
+  .btn-success {
+    background: var(--color-surface-elevated);
+    color: var(--color-success);
+    border: 1px solid rgb(5 150 105 / 0.35);
+    box-shadow: var(--shadow-elev-1);
+  }
+
+  .field-input {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: calc(var(--radius-md) * 0.85);
+    border: 1px solid var(--border-subtle);
+    background: var(--color-surface-elevated);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-elev-1);
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+
+  .field-input:disabled {
+    opacity: 0.6;
+    background: var(--color-secondary);
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: var(--color-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-elev-1);
+  }
+
+  /* Wallet adapter — light chrome */
+  .wallet-adapter-button {
+    background-color: var(--color-tosca-700) !important;
+    color: #fff !important;
+    border-radius: calc(var(--radius-md) * 0.85) !important;
+    font-family: var(--font-sans), system-ui, sans-serif !important;
+    font-weight: 600 !important;
+    height: 2.75rem !important;
+  }
+
+  .wallet-adapter-button:hover {
+    background-color: var(--color-tosca-600) !important;
+  }
+
+  .wallet-adapter-modal-wrapper {
+    background: rgb(15 23 42 / 0.45) !important;
+  }
+
+  .wallet-adapter-modal {
+    background: var(--color-surface-elevated) !important;
+    color: var(--color-ink) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-elev-2) !important;
+  }
+
+  .wallet-adapter-modal-title,
+  .wallet-adapter-modal-list .wallet-adapter-button {
+    color: var(--color-ink) !important;
+  }
+
+  .wallet-adapter-modal-list .wallet-adapter-button {
+    background: var(--color-secondary) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+
+  .btn:not(:disabled):active {
+    transform: none;
+  }
+}

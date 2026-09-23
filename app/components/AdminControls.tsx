@@ -45,12 +45,12 @@ export function AdminControls({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs uppercase tracking-widest text-zinc-500">Admin</p>
+      <p className="text-sm font-semibold uppercase tracking-widest text-muted">Admin</p>
       <div className="flex flex-wrap gap-2">
         {!vault?.exists && (
           <button
             type="button"
-            className="rounded-lg border border-zinc-600 px-3 py-1.5 text-sm"
+            className="btn btn-secondary"
             disabled={tx.status === "pending"}
             onClick={() => run(() => initializeVault(connection, wallet as never))}
           >
@@ -60,7 +60,7 @@ export function AdminControls({
         {isAdmin && vault && !vault.paused && (
           <button
             type="button"
-            className="rounded-lg border border-amber-700 px-3 py-1.5 text-sm text-amber-200"
+            className="btn btn-warning"
             disabled={tx.status === "pending"}
             onClick={() => run(() => pauseVault(connection, wallet as never))}
           >
@@ -70,7 +70,7 @@ export function AdminControls({
         {isAdmin && vault?.paused && (
           <button
             type="button"
-            className="rounded-lg border border-emerald-700 px-3 py-1.5 text-sm text-emerald-200"
+            className="btn btn-success"
             disabled={tx.status === "pending"}
             onClick={() => run(() => unpauseVault(connection, wallet as never))}
           >
