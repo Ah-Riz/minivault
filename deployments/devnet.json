@@ -1,13 +1,15 @@
 {
   "cluster": "devnet",
+  "tokenSymbol": "USDC",
   "programId": "Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd",
-  "mint": "5vg3tMYz1gYRxCa2VQe3pucqw2hjcTedi4uDWUTH4nMQ",
-  "vaultConfig": "CddTc69KPtiJ9nCB69iMLtUq4kquiNDN5JYq29e7TdJp",
-  "vaultTokenAccount": "3VaRJN1U4zQz9bhUefop4mWJrcwGHB25hKqPpm6hcUk3",
+  "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  "vaultConfig": "4QqPbebBRa33qCjB39hLBFLeyStbYozfXhgmqqCuzACF",
+  "vaultTokenAccount": "2EbUPDoy1aggdvyKoHYydZA4UfVB77fSH3U86w4hDjDf",
   "authority": "GPfHeZtBna1rJmwam1yCcREhYnLcxWhBmUdDoVuL5Es6",
-  "initializeSignature": "tBvC2TQBujkBg57j1m2XqJ7Uo9HqoYHkh7bzJ6ArwdDtMMx3SCoU3bBdPgSSpHBV8Cpkehd6AGXfvBqS5zUHWH8",
+  "initializeSignature": "5i29o6J3wpCpeoiQPsRFnNioWE1Jxbg1JS68o72vvpRhqFqhvAxgWM9d8JAujwoCBiR9uRw6pF8oc9XJX4Y9Z5yc",
   "paused": false,
   "totalDeposits": "0",
   "rpc": "https://api.devnet.solana.com",
-  "frontendUrl": "https://minivault.ahmadrizkimaulana666.workers.dev"
+  "frontendUrl": "https://minivault.ahmadrizkimaulana666.workers.dev",
+  "faucet": "https://faucet.circle.com/"
 }

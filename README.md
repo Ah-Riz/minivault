@@ -7,19 +7,20 @@ Simple decentralized SPL token vault built with Anchor. Deposit, withdraw, per-u
 | | |
 |--|--|
 | **App** | [https://minivault.ahmadrizkimaulana666.workers.dev](https://minivault.ahmadrizkimaulana666.workers.dev) |
+| **Asset** | Devnet **USDC** |
 | **Program** | [`Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd`](https://explorer.solana.com/address/Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd?cluster=devnet) |
-| **Mint** | [`5vg3tMYz1gYRxCa2VQe3pucqw2hjcTedi4uDWUTH4nMQ`](https://explorer.solana.com/address/5vg3tMYz1gYRxCa2VQe3pucqw2hjcTedi4uDWUTH4nMQ?cluster=devnet) |
-| **Vault config** | [`CddTc69KPtiJ9nCB69iMLtUq4kquiNDN5JYq29e7TdJp`](https://explorer.solana.com/address/CddTc69KPtiJ9nCB69iMLtUq4kquiNDN5JYq29e7TdJp?cluster=devnet) |
-| **Init tx** | [`tBvC2TQ…`](https://explorer.solana.com/tx/tBvC2TQBujkBg57j1m2XqJ7Uo9HqoYHkh7bzJ6ArwdDtMMx3SCoU3bBdPgSSpHBV8Cpkehd6AGXfvBqS5zUHWH8?cluster=devnet) |
+| **Mint** | [`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`](https://explorer.solana.com/address/4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU?cluster=devnet) |
+| **Vault config** | [`4QqPbebBRa33qCjB39hLBFLeyStbYozfXhgmqqCuzACF`](https://explorer.solana.com/address/4QqPbebBRa33qCjB39hLBFLeyStbYozfXhgmqqCuzACF?cluster=devnet) |
+| **Init tx** | [`5i29o6J3…`](https://explorer.solana.com/tx/5i29o6J3wpCpeoiQPsRFnNioWE1Jxbg1JS68o72vvpRhqFqhvAxgWM9d8JAujwoCBiR9uRw6pF8oc9XJX4Y9Z5yc?cluster=devnet) |
 
 Deployment snapshot: [`deployments/devnet.json`](deployments/devnet.json)
 
 ### Try it
 
 1. Switch Phantom/Solflare to **Devnet**.
-2. Open the app URL above and connect.
-3. To deposit: you need the demo mint in your wallet (authority wallet already holds supply after `setup:devnet`). Transfer some tokens from the authority ATA, or mint more with the mint authority.
-4. Deposit → withdraw → (admin) pause / unpause.
+2. Get Devnet USDC from [Circle faucet](https://faucet.circle.com/) (select Solana Devnet).
+3. Open the app, connect, deposit → withdraw → (admin) pause / unpause.
+4. If you see `Blockhash not found`, set `NEXT_PUBLIC_RPC_URL` to a dedicated Devnet RPC (Helius/QuickNode) — public `api.devnet.solana.com` is often flaky.
 
 ## Recruiter takeaway
 
@@ -68,14 +69,15 @@ npm run sync-idl   # copies IDL + types into app/lib
 anchor test
 ```
 
-## Ship to devnet (program + mint + initialize)
+## Ship to devnet (program + USDC vault)
 
 ```bash
 npm run ship:devnet
-# = build + anchor deploy --provider.cluster devnet + scripts/devnet-setup.ts
+# = build + anchor deploy --provider.cluster devnet + scripts/init-usdc-vault.ts
+# or: npm run setup:usdc
 ```
 
-Writes [`deployments/devnet.json`](deployments/devnet.json). Then copy program/mint into `app/.env.local` and `app/wrangler.toml`.
+Writes [`deployments/devnet.json`](deployments/devnet.json) for Devnet USDC. Copy mint/program into `app/.env.local` and `app/wrangler.toml` if needed.
 
 ## Frontend (local)
 

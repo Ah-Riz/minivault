@@ -10,12 +10,18 @@ export type MiniVaultProgram = Program<MiniVault>;
 export function getConnection(rpcUrl?: string): Connection {
   return new Connection(
     rpcUrl ?? process.env.NEXT_PUBLIC_RPC_URL ?? "https://api.devnet.solana.com",
-    "confirmed"
+    {
+      commitment: "confirmed",
+      confirmTransactionInitialTimeout: 60_000,
+    }
   );
 }
 
 export function getProvider(connection: Connection, wallet: AnchorWallet): AnchorProvider {
-  return new AnchorProvider(connection, wallet, { commitment: "confirmed" });
+  return new AnchorProvider(connection, wallet, {
+    commitment: "confirmed",
+    preflightCommitment: "confirmed",
+  });
 }
 
 export function getProgram(provider: AnchorProvider): MiniVaultProgram {

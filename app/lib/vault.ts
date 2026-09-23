@@ -1,4 +1,4 @@
-import { AnchorProvider, BN } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
@@ -10,12 +10,15 @@ import {
   Connection,
   Keypair,
   PublicKey,
+  SendTransactionError,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
   VersionedTransaction,
 } from "@solana/web3.js";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
-import { MINT } from "./constants";
+import { idl, MINT } from "./constants";
+import type { MiniVault } from "./mini_vault";
 import {
   getProgram,
   getProvider,
@@ -23,9 +26,6 @@ import {
   vaultConfigPda,
   vaultTokenAta,
 } from "./program";
-import type { MiniVault } from "./mini_vault";
-import { idl } from "./constants";
-import { Program } from "@coral-xyz/anchor";
 
 export type VaultView = {
   authority: string;
@@ -41,6 +41,67 @@ export type PositionView = {
   exists: boolean;
 };
 
+function isBlockhashError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /blockhash not found|block height exceeded|expired/i.test(msg);
+}
+
+/** Format wallet/RPC errors for the UI (include logs when present). */
+export async function formatTxError(err: unknown, connection?: Connection): Promise<string> {
+  if (err instanceof SendTransactionError) {
+    try {
+      const logs = connection
+        ? await err.getLogs(connection)
+        : ((err as SendTransactionError & { logs?: string[] }).logs ?? []);
+      if (logs?.length) return `${err.message}\nLogs:\n${logs.join("\n")}`;
+    } catch {
+      /* ignore */
+    }
+    return err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+/**
+ * Sign + send with a fresh blockhash from the same Connection used for confirms.
+ * Retries once on blockhash / expiry races common on public Devnet RPCs.
+ */
+export async function sendTx(
+  connection: Connection,
+  wallet: AnchorWallet,
+  ixs: TransactionInstruction[]
+): Promise<string> {
+  const attempt = async (): Promise<string> => {
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    const tx = new Transaction().add(...ixs);
+    tx.feePayer = wallet.publicKey;
+    tx.recentBlockhash = blockhash;
+
+    const signed = await wallet.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize(), {
+      skipPreflight: false,
+      preflightCommitment: "confirmed",
+      maxRetries: 3,
+    });
+    const conf = await connection.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight },
+      "confirmed"
+    );
+    if (conf.value.err) {
+      throw new Error(`Transaction failed: ${JSON.stringify(conf.value.err)}`);
+    }
+    return sig;
+  };
+
+  try {
+    return await attempt();
+  } catch (err) {
+    if (!isBlockhashError(err)) throw err;
+    return attempt();
+  }
+}
+
 /** Read-only dummy wallet for account fetches (never signs). */
 function readOnlyWallet(): AnchorWallet {
   const kp = Keypair.generate();
@@ -54,6 +115,7 @@ function readOnlyWallet(): AnchorWallet {
 function readProgram(connection: Connection): Program<MiniVault> {
   const provider = new AnchorProvider(connection, readOnlyWallet(), {
     commitment: "confirmed",
+    preflightCommitment: "confirmed",
   });
   return new Program(idl as MiniVault, provider);
 }
@@ -140,22 +202,22 @@ export async function deposit(
   const vaultTokenAccount = vaultTokenAta(mint);
   const { ata: userTokenAccount, createIx } = await ensureUserAta(connection, mint, owner);
 
-  const builder = program.methods.deposit(amountRaw).accountsPartial({
-    owner,
-    mint,
-    vaultConfig,
-    userPosition,
-    userTokenAccount,
-    vaultTokenAccount,
-    tokenProgram: TOKEN_PROGRAM_ID,
-    systemProgram: SystemProgram.programId,
-  });
+  const depositIx = await program.methods
+    .deposit(amountRaw)
+    .accountsPartial({
+      owner,
+      mint,
+      vaultConfig,
+      userPosition,
+      userTokenAccount,
+      vaultTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
 
-  if (createIx) {
-    const tx = new Transaction().add(createIx).add(await builder.instruction());
-    return provider.sendAndConfirm(tx);
-  }
-  return builder.rpc();
+  const ixs = createIx ? [createIx, depositIx] : [depositIx];
+  return sendTx(connection, wallet, ixs);
 }
 
 export async function withdraw(
@@ -172,21 +234,21 @@ export async function withdraw(
   const vaultTokenAccount = vaultTokenAta(mint);
   const { ata: userTokenAccount, createIx } = await ensureUserAta(connection, mint, owner);
 
-  const builder = program.methods.withdraw(amountRaw).accountsPartial({
-    owner,
-    mint,
-    vaultConfig,
-    userPosition,
-    userTokenAccount,
-    vaultTokenAccount,
-    tokenProgram: TOKEN_PROGRAM_ID,
-  });
+  const withdrawIx = await program.methods
+    .withdraw(amountRaw)
+    .accountsPartial({
+      owner,
+      mint,
+      vaultConfig,
+      userPosition,
+      userTokenAccount,
+      vaultTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .instruction();
 
-  if (createIx) {
-    const tx = new Transaction().add(createIx).add(await builder.instruction());
-    return provider.sendAndConfirm(tx);
-  }
-  return builder.rpc();
+  const ixs = createIx ? [createIx, withdrawIx] : [withdrawIx];
+  return sendTx(connection, wallet, ixs);
 }
 
 export async function pauseVault(
@@ -197,10 +259,11 @@ export async function pauseVault(
   const provider = getProvider(connection, wallet);
   const program = getProgram(provider);
   const [vaultConfig] = vaultConfigPda(mint);
-  return program.methods
+  const ix = await program.methods
     .pause()
     .accountsPartial({ authority: wallet.publicKey, vaultConfig })
-    .rpc();
+    .instruction();
+  return sendTx(connection, wallet, [ix]);
 }
 
 export async function unpauseVault(
@@ -211,10 +274,11 @@ export async function unpauseVault(
   const provider = getProvider(connection, wallet);
   const program = getProgram(provider);
   const [vaultConfig] = vaultConfigPda(mint);
-  return program.methods
+  const ix = await program.methods
     .unpause()
     .accountsPartial({ authority: wallet.publicKey, vaultConfig })
-    .rpc();
+    .instruction();
+  return sendTx(connection, wallet, [ix]);
 }
 
 export async function initializeVault(
@@ -226,7 +290,7 @@ export async function initializeVault(
   const program = getProgram(provider);
   const [vaultConfig] = vaultConfigPda(mint);
   const vaultTokenAccount = vaultTokenAta(mint);
-  return program.methods
+  const ix = await program.methods
     .initialize()
     .accountsPartial({
       authority: wallet.publicKey,
@@ -237,5 +301,6 @@ export async function initializeVault(
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+    .instruction();
+  return sendTx(connection, wallet, [ix]);
 }

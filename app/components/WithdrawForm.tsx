@@ -3,7 +3,8 @@
 import { BN } from "@coral-xyz/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { FormEvent, useState } from "react";
-import { withdraw } from "../lib/vault";
+import { formatTxError, withdraw } from "../lib/vault";
+import { TOKEN_SYMBOL } from "../lib/constants";
 import { TxState, TxStatus } from "./TxStatus";
 
 function toRaw(amount: string, decimals: number): BN {
@@ -37,7 +38,7 @@ export function WithdrawForm({
     } catch (err) {
       setTx({
         status: "error",
-        message: err instanceof Error ? err.message : String(err),
+        message: await formatTxError(err, connection),
       });
     }
   }
@@ -45,7 +46,7 @@ export function WithdrawForm({
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block space-y-1.5 text-sm">
-        <span className="font-medium text-muted">Withdraw amount</span>
+        <span className="font-medium text-muted">Withdraw amount ({TOKEN_SYMBOL})</span>
         <input
           type="text"
           inputMode="decimal"

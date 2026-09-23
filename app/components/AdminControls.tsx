@@ -3,6 +3,7 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useState } from "react";
 import {
+  formatTxError,
   initializeVault,
   pauseVault,
   unpauseVault,
@@ -36,7 +37,7 @@ export function AdminControls({
     } catch (err) {
       setTx({
         status: "error",
-        message: err instanceof Error ? err.message : String(err),
+        message: await formatTxError(err, connection),
       });
     }
   }

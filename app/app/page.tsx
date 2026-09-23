@@ -8,7 +8,7 @@ import { DepositForm } from "../components/DepositForm";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { VaultStatus } from "../components/VaultStatus";
 import { WithdrawForm } from "../components/WithdrawForm";
-import { CLUSTER, MINT, PROGRAM_ID, explorerAddressUrl } from "../lib/constants";
+import { CLUSTER, MINT, PROGRAM_ID, TOKEN_SYMBOL, USDC_FAUCET_URL, explorerAddressUrl } from "../lib/constants";
 import { fetchPosition, fetchVault, type PositionView, type VaultView } from "../lib/vault";
 
 function short(pk: string) {
@@ -55,17 +55,27 @@ export default function HomePage() {
       <main className="mx-auto flex max-w-desk flex-col gap-8 px-6 py-10">
         <section className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-widest text-tosca-700">
-            SPL token vault
+            {TOKEN_SYMBOL} vault · Solana
           </p>
           <h1 className="max-w-2xl text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
-            Deposit and withdraw on Solana {CLUSTER}
+            Deposit and withdraw {TOKEN_SYMBOL} on {CLUSTER}
           </h1>
           <p className="max-w-xl text-muted">
-            Live protocol demo. Admin can pause the vault. This UI talks to{" "}
-            <span className="font-mono font-semibold text-warning">{CLUSTER}</span> only —
-            switch your wallet network to match.
+            Live protocol demo using Devnet {TOKEN_SYMBOL}. Admin can pause the vault. Switch your
+            wallet to{" "}
+            <span className="font-mono font-semibold text-warning">{CLUSTER}</span>, then fund{" "}
+            {TOKEN_SYMBOL} from the faucet before depositing.
           </p>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+            <a
+              className="font-semibold text-tosca-700 underline underline-offset-2"
+              href={USDC_FAUCET_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Get Devnet {TOKEN_SYMBOL}
+            </a>
+            <span aria-hidden>·</span>
             <a
               className="font-mono underline underline-offset-2 hover:text-tosca-700"
               href={explorerAddressUrl(programId)}
@@ -81,7 +91,7 @@ export default function HomePage() {
               target="_blank"
               rel="noreferrer"
             >
-              mint {short(mint)}
+              {TOKEN_SYMBOL} {short(mint)}
             </a>
           </p>
         </section>

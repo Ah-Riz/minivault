@@ -10,7 +10,8 @@
     "build": "anchor build && npm run sync-idl",
     "deploy:devnet": "anchor deploy --provider.cluster devnet",
     "setup:devnet": "ANCHOR_PROVIDER_URL=https://api.devnet.solana.com npx tsx scripts/devnet-setup.ts",
-    "ship:devnet": "npm run build && npm run deploy:devnet && npm run setup:devnet"
+    "setup:usdc": "ANCHOR_PROVIDER_URL=https://api.devnet.solana.com npx tsx scripts/init-usdc-vault.ts",
+    "ship:devnet": "npm run build && npm run deploy:devnet && npm run setup:usdc"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1"
