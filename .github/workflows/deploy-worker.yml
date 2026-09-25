@@ -20,7 +20,8 @@ jobs:
         working-directory: app
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Must match the account that owns worker "minivault" (not from a mismatched secret).
+      CLOUDFLARE_ACCOUNT_ID: "9566706794f5e710b31e54379c39f104"
       NEXT_PUBLIC_RPC_URL: https://api.devnet.solana.com
       NEXT_PUBLIC_PROGRAM_ID: Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd
       NEXT_PUBLIC_MINT: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
@@ -37,6 +38,15 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Verify Cloudflare token can see this account
+        run: |
+          code=$(curl -sS -o /tmp/cf.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/services")
+          echo "HTTP $code"
+          head -c 500 /tmp/cf.json; echo
+          test "$code" = "200"
 
       - name: Deploy to Cloudflare Workers
         run: npm run deploy

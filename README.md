@@ -100,8 +100,7 @@ Required repo secrets:
 
 | Secret | Purpose |
 |--------|---------|
-| `CLOUDFLARE_API_TOKEN` | API token with **Edit Cloudflare Workers** (create at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)) |
-| `CLOUDFLARE_ACCOUNT_ID` | `9566706794f5e710b31e54379c39f104` |
+| `CLOUDFLARE_API_TOKEN` | API token with **Account → Workers Scripts → Edit** on account `9566706794f5e710b31e54379c39f104` (template: Edit Cloudflare Workers). Account Resources must include that account; do not restrict to other Workers only. |
 
 Live URL: https://minivault.ahmadrizkimaulana666.workers.dev
 

@@ -57,5 +57,11 @@ jobs:
       - name: Install npm deps
         run: npm ci
 
+      - name: Create Solana keypair
+        run: |
+          mkdir -p ~/.config/solana
+          solana-keygen new --no-bip39-passphrase -o ~/.config/solana/id.json --force
+          solana config set --url localhost
+
       - name: Run anchor test
         run: anchor test
