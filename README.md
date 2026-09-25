@@ -6,7 +6,7 @@ Simple decentralized SPL token vault built with Anchor. Deposit, withdraw, per-u
 
 | | |
 |--|--|
-| **App** | [https://minivault.ahmadrizkimaulana666.workers.dev](https://minivault.ahmadrizkimaulana666.workers.dev) |
+| **App** | [https://minivault.ahmadmaulana.net](https://minivault.ahmadmaulana.net) |
 | **Asset** | Devnet **USDC** |
 | **Program** | [`Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd`](https://explorer.solana.com/address/Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd?cluster=devnet) |
 | **Mint** | [`4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`](https://explorer.solana.com/address/4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU?cluster=devnet) |
@@ -102,7 +102,7 @@ Required repo secrets:
 |--------|---------|
 | `CLOUDFLARE_API_TOKEN` | API token with **Account → Workers Scripts → Edit** on account `9566706794f5e710b31e54379c39f104` (template: Edit Cloudflare Workers). Account Resources must include that account; do not restrict to other Workers only. |
 
-Live URL: https://minivault.ahmadrizkimaulana666.workers.dev
+Live URL: https://minivault.ahmadmaulana.net
 
 ### Manual
 

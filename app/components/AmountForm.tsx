@@ -3,35 +3,36 @@
 import { useConnection, useWallet, type AnchorWallet } from "@solana/wallet-adapter-react";
 import { FormEvent, useState } from "react";
 import { formatRaw, toRaw } from "../lib/amount";
-import { TOKEN_SYMBOL, USDC_FAUCET_URL } from "../lib/constants";
-import { deposit, formatTxError } from "../lib/vault";
+import { TOKEN_DECIMALS, TOKEN_SYMBOL, USDC_FAUCET_URL } from "../lib/constants";
+import { deposit, formatTxError, withdraw } from "../lib/vault";
 import { TxState, TxStatus } from "./TxStatus";
 
-export function DepositForm({
-  decimals = 6,
+export function AmountForm({
+  mode,
   disabled,
-  walletBalanceRaw,
+  balanceRaw,
   onDone,
 }: {
-  decimals?: number;
+  mode: "deposit" | "withdraw";
   disabled?: boolean;
-  walletBalanceRaw?: string | null;
+  balanceRaw?: string | null;
   onDone?: () => void;
 }) {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const [amount, setAmount] = useState("1");
+  const [amount, setAmount] = useState(mode === "deposit" ? "1" : "0.5");
   const [tx, setTx] = useState<TxState>({ status: "idle" });
 
-  const bal = walletBalanceRaw ?? "0";
+  const isDeposit = mode === "deposit";
+  const bal = balanceRaw ?? "0";
   const balRaw = BigInt(bal || "0");
-  const noFunds = balRaw === 0n;
+  const empty = balRaw === 0n;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!wallet.publicKey || !wallet.signTransaction) return;
 
-    const amountRaw = toRaw(amount, decimals);
+    const amountRaw = toRaw(amount, TOKEN_DECIMALS);
     if (amountRaw.isZero() || amountRaw.isNeg()) {
       setTx({ status: "error", message: "Amount must be greater than zero." });
       return;
@@ -39,14 +40,17 @@ export function DepositForm({
     if (BigInt(amountRaw.toString()) > balRaw) {
       setTx({
         status: "error",
-        message: `Not enough ${TOKEN_SYMBOL} in wallet. Balance: ${formatRaw(bal, decimals)}. Get Devnet ${TOKEN_SYMBOL}: ${USDC_FAUCET_URL}`,
+        message: isDeposit
+          ? `Not enough ${TOKEN_SYMBOL} in wallet. Balance: ${formatRaw(bal, TOKEN_DECIMALS)}. Get Devnet ${TOKEN_SYMBOL}: ${USDC_FAUCET_URL}`
+          : `Not enough vault balance. Position: ${formatRaw(bal, TOKEN_DECIMALS)} ${TOKEN_SYMBOL}.`,
       });
       return;
     }
 
     try {
       setTx({ status: "pending" });
-      const sig = await deposit(connection, wallet as AnchorWallet, amountRaw);
+      const send = isDeposit ? deposit : withdraw;
+      const sig = await send(connection, wallet as AnchorWallet, amountRaw);
       setTx({ status: "success", signature: sig });
       onDone?.();
     } catch (err) {
@@ -61,14 +65,16 @@ export function DepositForm({
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block space-y-1.5 text-sm">
         <span className="flex items-center justify-between gap-2 font-medium text-muted">
-          <span>Deposit amount ({TOKEN_SYMBOL})</span>
+          <span>
+            {isDeposit ? "Deposit" : "Withdraw"} amount ({TOKEN_SYMBOL})
+          </span>
           <span className="font-mono text-xs font-normal">
-            Wallet {formatRaw(bal, decimals)}
+            {isDeposit ? "Wallet" : "Position"} {formatRaw(bal, TOKEN_DECIMALS)}
             <button
               type="button"
               className="ml-2 font-semibold text-tosca-700 underline underline-offset-2"
-              disabled={disabled || !wallet.connected || noFunds}
-              onClick={() => setAmount(formatRaw(bal, decimals))}
+              disabled={disabled || !wallet.connected || empty}
+              onClick={() => setAmount(formatRaw(bal, TOKEN_DECIMALS))}
             >
               Max
             </button>
@@ -83,7 +89,7 @@ export function DepositForm({
           disabled={disabled || !wallet.connected}
         />
       </label>
-      {noFunds && wallet.connected && (
+      {isDeposit && empty && wallet.connected && (
         <p className="text-xs text-muted">
           Wallet has 0 {TOKEN_SYMBOL}.{" "}
           <a
@@ -98,10 +104,10 @@ export function DepositForm({
       )}
       <button
         type="submit"
-        disabled={disabled || !wallet.connected || tx.status === "pending" || noFunds}
-        className="btn btn-primary"
+        disabled={disabled || !wallet.connected || tx.status === "pending" || empty}
+        className={`btn ${isDeposit ? "btn-primary" : "btn-secondary"}`}
       >
-        Deposit
+        {isDeposit ? "Deposit" : "Withdraw"}
       </button>
       <TxStatus state={tx} />
     </form>

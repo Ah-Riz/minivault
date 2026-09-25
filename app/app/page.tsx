@@ -4,11 +4,18 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useCallback, useEffect, useState } from "react";
 import { AdminControls } from "../components/AdminControls";
-import { DepositForm } from "../components/DepositForm";
+import { AmountForm } from "../components/AmountForm";
 import { NetworkBadge } from "../components/NetworkBadge";
 import { VaultStatus } from "../components/VaultStatus";
-import { WithdrawForm } from "../components/WithdrawForm";
-import { CLUSTER, MINT, PROGRAM_ID, TOKEN_SYMBOL, USDC_FAUCET_URL, explorerAddressUrl } from "../lib/constants";
+import {
+  CLUSTER,
+  MINT,
+  PROGRAM_ID,
+  TOKEN_SYMBOL,
+  USDC_FAUCET_URL,
+  explorerAddressUrl,
+  shortPk,
+} from "../lib/constants";
 import {
   fetchPosition,
   fetchUserAtaBalance,
@@ -16,10 +23,6 @@ import {
   type PositionView,
   type VaultView,
 } from "../lib/vault";
-
-function short(pk: string) {
-  return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
-}
 
 export default function HomePage() {
   const { connection } = useConnection();
@@ -52,6 +55,7 @@ export default function HomePage() {
 
   const programId = PROGRAM_ID.toBase58();
   const mint = MINT.toBase58();
+  const actionsDisabled = vault?.paused || !vault?.exists;
 
   return (
     <div className="min-h-screen">
@@ -95,7 +99,7 @@ export default function HomePage() {
               target="_blank"
               rel="noreferrer"
             >
-              program {short(programId)}
+              program {shortPk(programId)}
             </a>
             <span aria-hidden>·</span>
             <a
@@ -104,21 +108,16 @@ export default function HomePage() {
               target="_blank"
               rel="noreferrer"
             >
-              {TOKEN_SYMBOL} {short(mint)}
+              {TOKEN_SYMBOL} {shortPk(mint)}
             </a>
           </p>
         </section>
 
         <section className="elev space-y-4 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">Vault</h2>
-            <NetworkBadge />
-          </div>
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">Vault</h2>
           <VaultStatus vault={vault} position={position} />
           {connected && publicKey ? (
-            <p className="font-mono text-xs text-muted">
-              {publicKey.toBase58().slice(0, 4)}…{publicKey.toBase58().slice(-4)}
-            </p>
+            <p className="font-mono text-xs text-muted">{shortPk(publicKey.toBase58())}</p>
           ) : (
             <p className="text-sm text-muted">Connect a wallet to deposit or withdraw.</p>
           )}
@@ -127,17 +126,19 @@ export default function HomePage() {
         <section className="grid gap-6 sm:grid-cols-2">
           <div className="elev space-y-4 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">Deposit</h2>
-            <DepositForm
-              disabled={vault?.paused || !vault?.exists}
-              walletBalanceRaw={walletBal}
+            <AmountForm
+              mode="deposit"
+              disabled={actionsDisabled}
+              balanceRaw={walletBal}
               onDone={refresh}
             />
           </div>
           <div className="elev space-y-4 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">Withdraw</h2>
-            <WithdrawForm
-              disabled={vault?.paused || !vault?.exists}
-              positionRaw={position?.amount}
+            <AmountForm
+              mode="withdraw"
+              disabled={actionsDisabled}
+              balanceRaw={position?.amount}
               onDone={refresh}
             />
           </div>

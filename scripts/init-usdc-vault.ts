@@ -75,7 +75,7 @@ async function main() {
 
   const config = await program.account.vaultConfig.fetch(vaultConfig);
   const prevPath = path.join(__dirname, "..", "deployments", "devnet.json");
-  let frontendUrl = "https://minivault.ahmadrizkimaulana666.workers.dev";
+  let frontendUrl = "https://minivault.ahmadmaulana.net";
   if (fs.existsSync(prevPath)) {
     try {
       const prev = JSON.parse(fs.readFileSync(prevPath, "utf8")) as { frontendUrl?: string };

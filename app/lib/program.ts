@@ -5,18 +5,6 @@ import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { idl, PROGRAM_ID, MINT } from "./constants";
 import type { MiniVault } from "./mini_vault";
 
-export type MiniVaultProgram = Program<MiniVault>;
-
-export function getConnection(rpcUrl?: string): Connection {
-  return new Connection(
-    rpcUrl ?? process.env.NEXT_PUBLIC_RPC_URL ?? "https://api.devnet.solana.com",
-    {
-      commitment: "confirmed",
-      confirmTransactionInitialTimeout: 60_000,
-    }
-  );
-}
-
 export function getProvider(connection: Connection, wallet: AnchorWallet): AnchorProvider {
   return new AnchorProvider(connection, wallet, {
     commitment: "confirmed",
@@ -24,7 +12,7 @@ export function getProvider(connection: Connection, wallet: AnchorWallet): Ancho
   });
 }
 
-export function getProgram(provider: AnchorProvider): MiniVaultProgram {
+export function getProgram(provider: AnchorProvider): Program<MiniVault> {
   return new Program(idl as MiniVault, provider);
 }
 

@@ -2,20 +2,14 @@
 
 import type { PositionView, VaultView } from "../lib/vault";
 import { formatRaw } from "../lib/amount";
-
-function short(pk: string) {
-  if (!pk || pk.length < 8) return "—";
-  return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
-}
+import { TOKEN_DECIMALS, shortPk } from "../lib/constants";
 
 export function VaultStatus({
   vault,
   position,
-  decimals = 6,
 }: {
   vault: VaultView | null;
   position: PositionView | null;
-  decimals?: number;
 }) {
   if (!vault) {
     return <p className="text-sm text-muted">Loading vault…</p>;
@@ -25,7 +19,7 @@ export function VaultStatus({
     return (
       <div className="space-y-2 text-sm text-muted">
         <p>No vault found for this mint on the configured cluster.</p>
-        <p className="font-mono text-xs">mint {short(vault.mint)}</p>
+        <p className="font-mono text-xs">mint {shortPk(vault.mint)}</p>
       </div>
     );
   }
@@ -41,18 +35,18 @@ export function VaultStatus({
       <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
         <dt className="text-muted">Total deposits</dt>
         <dd className="nums font-mono font-semibold text-ink">
-          {formatRaw(vault.totalDeposits, decimals)}
+          {formatRaw(vault.totalDeposits, TOKEN_DECIMALS)}
         </dd>
       </div>
       <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
         <dt className="text-muted">Your balance</dt>
         <dd className="nums font-mono font-semibold text-ink">
-          {formatRaw(position?.amount ?? "0", decimals)}
+          {formatRaw(position?.amount ?? "0", TOKEN_DECIMALS)}
         </dd>
       </div>
       <div className="rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
         <dt className="text-muted">Authority</dt>
-        <dd className="font-mono text-ink">{short(vault.authority)}</dd>
+        <dd className="font-mono text-ink">{shortPk(vault.authority)}</dd>
       </div>
       <div className="col-span-2 rounded-md border border-[color:var(--border-subtle)] bg-secondary/60 px-3 py-2">
         <dt className="text-muted">Mint</dt>

@@ -205,11 +205,12 @@ async function ensureUserAta(
   }
 }
 
-export async function deposit(
+async function moveTokens(
+  kind: "deposit" | "withdraw",
   connection: Connection,
   wallet: AnchorWallet,
   amountRaw: BN,
-  mint: PublicKey = MINT
+  mint: PublicKey
 ): Promise<string> {
   const provider = getProvider(connection, wallet);
   const program = getProgram(provider);
@@ -219,22 +220,34 @@ export async function deposit(
   const vaultTokenAccount = vaultTokenAta(mint);
   const { ata: userTokenAccount, createIx } = await ensureUserAta(connection, mint, owner);
 
-  const depositIx = await program.methods
-    .deposit(amountRaw)
-    .accountsPartial({
-      owner,
-      mint,
-      vaultConfig,
-      userPosition,
-      userTokenAccount,
-      vaultTokenAccount,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .instruction();
+  const accounts = {
+    owner,
+    mint,
+    vaultConfig,
+    userPosition,
+    userTokenAccount,
+    vaultTokenAccount,
+    tokenProgram: TOKEN_PROGRAM_ID,
+  };
 
-  const ixs = createIx ? [createIx, depositIx] : [depositIx];
-  return sendTx(connection, wallet, ixs);
+  const ix =
+    kind === "deposit"
+      ? await program.methods
+          .deposit(amountRaw)
+          .accountsPartial({ ...accounts, systemProgram: SystemProgram.programId })
+          .instruction()
+      : await program.methods.withdraw(amountRaw).accountsPartial(accounts).instruction();
+
+  return sendTx(connection, wallet, createIx ? [createIx, ix] : [ix]);
+}
+
+export async function deposit(
+  connection: Connection,
+  wallet: AnchorWallet,
+  amountRaw: BN,
+  mint: PublicKey = MINT
+): Promise<string> {
+  return moveTokens("deposit", connection, wallet, amountRaw, mint);
 }
 
 export async function withdraw(
@@ -243,29 +256,7 @@ export async function withdraw(
   amountRaw: BN,
   mint: PublicKey = MINT
 ): Promise<string> {
-  const provider = getProvider(connection, wallet);
-  const program = getProgram(provider);
-  const owner = wallet.publicKey;
-  const [vaultConfig] = vaultConfigPda(mint);
-  const [userPosition] = userPositionPda(owner, mint);
-  const vaultTokenAccount = vaultTokenAta(mint);
-  const { ata: userTokenAccount, createIx } = await ensureUserAta(connection, mint, owner);
-
-  const withdrawIx = await program.methods
-    .withdraw(amountRaw)
-    .accountsPartial({
-      owner,
-      mint,
-      vaultConfig,
-      userPosition,
-      userTokenAccount,
-      vaultTokenAccount,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    })
-    .instruction();
-
-  const ixs = createIx ? [createIx, withdrawIx] : [withdrawIx];
-  return sendTx(connection, wallet, ixs);
+  return moveTokens("withdraw", connection, wallet, amountRaw, mint);
 }
 
 export async function pauseVault(

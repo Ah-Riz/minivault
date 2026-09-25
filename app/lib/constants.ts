@@ -24,6 +24,11 @@ export const RPC_URL =
 
 export const CLUSTER = "devnet" as const;
 
+export function shortPk(pk: string): string {
+  if (!pk || pk.length < 8) return "—";
+  return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
+}
+
 export function explorerAddressUrl(address: string): string {
   return `https://explorer.solana.com/address/${address}?cluster=${CLUSTER}`;
 }
