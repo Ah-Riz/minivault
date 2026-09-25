@@ -35,3 +35,4 @@ yarn-error.log
 
 # Local knowledge graph
 graphify-out/
+.playwright-mcp/

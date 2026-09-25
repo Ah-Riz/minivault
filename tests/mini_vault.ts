@@ -437,4 +437,194 @@ describe("mini_vault", () => {
     expect(config.authority.toBase58()).to.equal(authority.publicKey.toBase58());
     expect(config.paused).to.equal(false);
   });
+
+  it("rejects zero amount withdraw", async () => {
+    const userPos = positionPda(user.publicKey);
+    const topUp = new anchor.BN(100_000);
+    await program.methods
+      .deposit(topUp)
+      .accounts(depositAccounts(user.publicKey, userAta, userPos))
+      .signers([user])
+      .rpc();
+
+    await expectAnchorError(
+      () =>
+        program.methods
+          .withdraw(new anchor.BN(0))
+          .accounts(withdrawAccounts(user.publicKey, userAta, userPos))
+          .signers([user])
+          .rpc(),
+      "InvalidAmount"
+    );
+  });
+
+  it("unauthorized unpause fails", async () => {
+    await program.methods
+      .pause()
+      .accounts({ authority: authority.publicKey, vaultConfig })
+      .rpc();
+
+    await expectAnchorError(
+      () =>
+        program.methods
+          .unpause()
+          .accounts({ authority: attacker.publicKey, vaultConfig })
+          .signers([attacker])
+          .rpc(),
+      "Unauthorized"
+    );
+
+    await program.methods
+      .unpause()
+      .accounts({ authority: authority.publicKey, vaultConfig })
+      .rpc();
+
+    const config = await program.account.vaultConfig.fetch(vaultConfig);
+    expect(config.paused).to.equal(false);
+  });
+
+  describe("accounting / overflow", () => {
+    const alice = Keypair.generate();
+    const bob = Keypair.generate();
+    let overflowMint: PublicKey;
+    let overflowConfig: PublicKey;
+    let overflowVaultAta: PublicKey;
+    let aliceAta: PublicKey;
+    let bobAta: PublicKey;
+
+    function overflowPosition(owner: PublicKey): PublicKey {
+      return PublicKey.findProgramAddressSync(
+        [Buffer.from("user_position"), overflowMint.toBuffer(), owner.toBuffer()],
+        program.programId
+      )[0];
+    }
+
+    function overflowDepositAccounts(
+      owner: PublicKey,
+      userTokenAccount: PublicKey,
+      userPos: PublicKey
+    ) {
+      return {
+        owner,
+        mint: overflowMint,
+        vaultConfig: overflowConfig,
+        userPosition: userPos,
+        userTokenAccount,
+        vaultTokenAccount: overflowVaultAta,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      };
+    }
+
+    before(async () => {
+      const conn = provider.connection;
+      const sigs = await Promise.all([
+        conn.requestAirdrop(alice.publicKey, 2e9),
+        conn.requestAirdrop(bob.publicKey, 2e9),
+      ]);
+      await Promise.all(sigs.map((s) => conn.confirmTransaction(s, "confirmed")));
+
+      overflowMint = await createMint(conn, authority, authority.publicKey, null, decimals);
+      [overflowConfig] = PublicKey.findProgramAddressSync(
+        [Buffer.from("vault_config"), overflowMint.toBuffer()],
+        program.programId
+      );
+      overflowVaultAta = getAssociatedTokenAddressSync(overflowMint, overflowConfig, true);
+
+      aliceAta = await createAssociatedTokenAccount(
+        conn,
+        authority,
+        overflowMint,
+        alice.publicKey
+      );
+      bobAta = await createAssociatedTokenAccount(conn, authority, overflowMint, bob.publicKey);
+
+      await mintTo(conn, authority, overflowMint, aliceAta, authority, 5_000_000);
+      await mintTo(conn, authority, overflowMint, bobAta, authority, 3_000_000);
+
+      await program.methods
+        .initialize()
+        .accounts({
+          authority: authority.publicKey,
+          mint: overflowMint,
+          vaultConfig: overflowConfig,
+          vaultTokenAccount: overflowVaultAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+    });
+
+    it("sum of positions matches total_deposits and vault ATA", async () => {
+      const aliceAmt = new anchor.BN(1_250_000);
+      const bobAmt = new anchor.BN(750_000);
+      const alicePos = overflowPosition(alice.publicKey);
+      const bobPos = overflowPosition(bob.publicKey);
+
+      await program.methods
+        .deposit(aliceAmt)
+        .accounts(overflowDepositAccounts(alice.publicKey, aliceAta, alicePos))
+        .signers([alice])
+        .rpc();
+      await program.methods
+        .deposit(bobAmt)
+        .accounts(overflowDepositAccounts(bob.publicKey, bobAta, bobPos))
+        .signers([bob])
+        .rpc();
+
+      const alicePosition = await program.account.userPosition.fetch(alicePos);
+      const bobPosition = await program.account.userPosition.fetch(bobPos);
+      const config = await program.account.vaultConfig.fetch(overflowConfig);
+      const vaultAta = await getAccount(provider.connection, overflowVaultAta);
+
+      const sumPositions = alicePosition.amount.add(bobPosition.amount);
+      expect(sumPositions.toString()).to.equal(config.totalDeposits.toString());
+      expect(config.totalDeposits.toString()).to.equal(vaultAta.amount.toString());
+      expect(sumPositions.toNumber()).to.equal(aliceAmt.add(bobAmt).toNumber());
+    });
+
+    it("deposit MathOverflow when totals exceed u64::MAX", async () => {
+      const halfPlusOne = new anchor.BN("9223372036854775808"); // 2^63
+      // Fresh user so the first deposit can credit 2^63 without depending on alice/bob state.
+      const whale = Keypair.generate();
+      const conn = provider.connection;
+      await conn.confirmTransaction(
+        await conn.requestAirdrop(whale.publicKey, 2e9),
+        "confirmed"
+      );
+      const whaleAta = await createAssociatedTokenAccount(
+        conn,
+        authority,
+        overflowMint,
+        whale.publicKey
+      );
+      // Enough for the first deposit only; second deposit must fail on checked_add before CPI.
+      await mintTo(
+        conn,
+        authority,
+        overflowMint,
+        whaleAta,
+        authority,
+        BigInt(halfPlusOne.toString())
+      );
+
+      const whalePos = overflowPosition(whale.publicKey);
+      await program.methods
+        .deposit(halfPlusOne)
+        .accounts(overflowDepositAccounts(whale.publicKey, whaleAta, whalePos))
+        .signers([whale])
+        .rpc();
+
+      await expectAnchorError(
+        () =>
+          program.methods
+            .deposit(halfPlusOne)
+            .accounts(overflowDepositAccounts(whale.publicKey, whaleAta, whalePos))
+            .signers([whale])
+            .rpc(),
+        "MathOverflow"
+      );
+    });
+  });
 });

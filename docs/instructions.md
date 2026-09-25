@@ -12,7 +12,7 @@
 
 ## Account metas
 
-### `initialize`
+### initialize
 
 | Account | Notes |
 |---------|-------|
@@ -24,7 +24,7 @@
 | `associated_token_program` | |
 | `system_program` | |
 
-### `deposit`
+### deposit
 
 | Account | Notes |
 |---------|-------|
@@ -39,18 +39,18 @@
 
 Requires: `!paused`, `amount > 0`
 
-### `withdraw`
+### withdraw
 
 Same token accounts as deposit (no system program). Requires `amount <= user_position.amount` and `!paused`. Vault transfer uses PDA signer seeds.
 
-### `pause` / `unpause`
+### pause / unpause
 
 | Account | Notes |
 |---------|-------|
 | `authority` | signer; must equal `vault_config.authority` |
 | `vault_config` | mut PDA |
 
-### `close_position`
+### close_position
 
 | Account | Notes |
 |---------|-------|
@@ -59,7 +59,7 @@ Same token accounts as deposit (no system program). Requires `amount <= user_pos
 | `vault_config` | PDA |
 | `user_position` | mut PDA; closed when `amount == 0` |
 
-### `transfer_authority`
+### transfer_authority
 
 | Account | Notes |
 |---------|-------|

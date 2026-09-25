@@ -33,6 +33,18 @@ pub mod mini_vault {
             position.amount = 0;
         }
 
+        // Credit math before CPI so overflow cannot leave tokens in the vault unattributed.
+        let new_position_amount = position
+            .amount
+            .checked_add(amount)
+            .ok_or(VaultError::MathOverflow)?;
+        let new_total_deposits = ctx
+            .accounts
+            .vault_config
+            .total_deposits
+            .checked_add(amount)
+            .ok_or(VaultError::MathOverflow)?;
+
         token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -45,16 +57,8 @@ pub mod mini_vault {
             amount,
         )?;
 
-        position.amount = position
-            .amount
-            .checked_add(amount)
-            .ok_or(VaultError::MathOverflow)?;
-        ctx.accounts.vault_config.total_deposits = ctx
-            .accounts
-            .vault_config
-            .total_deposits
-            .checked_add(amount)
-            .ok_or(VaultError::MathOverflow)?;
+        position.amount = new_position_amount;
+        ctx.accounts.vault_config.total_deposits = new_total_deposits;
 
         emit!(DepositEvent {
             owner: ctx.accounts.owner.key(),
