@@ -57,3 +57,4 @@ UserPosition PDA
 3. Only `authority` may flip `paused`
 4. Deposit/withdraw require `paused == false`
 5. Deposit/withdraw verify vault ATA pubkey matches `VaultConfig.vault_token_account`
+6. Empty positions may be closed (`close_position`); rent returns to owner

@@ -7,6 +7,8 @@
 | `withdraw` | User | Debit position; PDA-signed transfer vault → user |
 | `pause` | Admin | Set `paused = true` |
 | `unpause` | Admin | Set `paused = false` |
+| `close_position` | User | Close empty `UserPosition` PDA; reclaim rent to owner |
+| `transfer_authority` | Admin | Set `VaultConfig.authority` to a new pubkey |
 
 ## Account metas
 
@@ -48,6 +50,23 @@ Same token accounts as deposit (no system program). Requires `amount <= user_pos
 | `authority` | signer; must equal `vault_config.authority` |
 | `vault_config` | mut PDA |
 
+### `close_position`
+
+| Account | Notes |
+|---------|-------|
+| `owner` | signer; rent destination (`close = owner`) |
+| `mint` | must match config + position |
+| `vault_config` | PDA |
+| `user_position` | mut PDA; closed when `amount == 0` |
+
+### `transfer_authority`
+
+| Account | Notes |
+|---------|-------|
+| `authority` | signer; current admin |
+| `new_authority` | unchecked pubkey |
+| `vault_config` | mut PDA |
+
 ## Error codes
 
 | Code | When |
@@ -59,3 +78,4 @@ Same token accounts as deposit (no system program). Requires `amount <= user_pos
 | `MintMismatch` | Mint / token account mint mismatch |
 | `VaultTokenMismatch` | Wrong vault ATA passed |
 | `MathOverflow` | Checked add/sub failed |
+| `PositionNotEmpty` | `close_position` while amount > 0 |

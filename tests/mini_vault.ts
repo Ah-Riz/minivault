@@ -284,4 +284,260 @@ describe("mini_vault", () => {
     const afterUser = await getAccount(provider.connection, userAta);
     expect(Number(afterUser.amount - beforeUser.amount)).to.equal(withdrawAmt.toNumber());
   });
+
+  it("rejects deposit with wrong mint on user ATA", async () => {
+    const otherMint = await createMint(
+      provider.connection,
+      authority,
+      authority.publicKey,
+      null,
+      decimals
+    );
+    const otherAta = await createAssociatedTokenAccount(
+      provider.connection,
+      authority,
+      otherMint,
+      user.publicKey
+    );
+    await mintTo(provider.connection, authority, otherMint, otherAta, authority, 1_000_000);
+
+    const userPos = positionPda(user.publicKey);
+    try {
+      await program.methods
+        .deposit(new anchor.BN(1))
+        .accounts({
+          owner: user.publicKey,
+          mint,
+          vaultConfig,
+          userPosition: userPos,
+          userTokenAccount: otherAta,
+          vaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.be.instanceOf(AnchorError);
+      expect((err as AnchorError).error.errorCode.code).to.equal("MintMismatch");
+    }
+  });
+
+  it("rejects deposit with wrong vault token account", async () => {
+    const fakeVaultAta = await createAssociatedTokenAccount(
+      provider.connection,
+      authority,
+      mint,
+      attacker.publicKey
+    );
+    const userPos = positionPda(user.publicKey);
+    try {
+      await program.methods
+        .deposit(new anchor.BN(1))
+        .accounts({
+          owner: user.publicKey,
+          mint,
+          vaultConfig,
+          userPosition: userPos,
+          userTokenAccount: userAta,
+          vaultTokenAccount: fakeVaultAta,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([user])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.be.instanceOf(AnchorError);
+      expect((err as AnchorError).error.errorCode.code).to.equal("VaultTokenMismatch");
+    }
+  });
+
+  it("rejects attacker withdraw on victim position", async () => {
+    const victimPos = positionPda(user.publicKey);
+    const attackerAta = getAssociatedTokenAddressSync(mint, attacker.publicKey);
+    try {
+      await getAccount(provider.connection, attackerAta);
+    } catch {
+      await createAssociatedTokenAccount(
+        provider.connection,
+        authority,
+        mint,
+        attacker.publicKey
+      );
+    }
+    try {
+      await program.methods
+        .withdraw(new anchor.BN(1))
+        .accounts({
+          owner: attacker.publicKey,
+          mint,
+          vaultConfig,
+          userPosition: victimPos,
+          userTokenAccount: attackerAta,
+          vaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers([attacker])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.be.instanceOf(AnchorError);
+      // seeds bind owner → ConstraintSeeds, or has_one if PDA somehow matched
+      const code = (err as AnchorError).error.errorCode.code;
+      expect(["ConstraintSeeds", "Unauthorized"]).to.include(code);
+    }
+  });
+
+  it("rejects double initialize", async () => {
+    try {
+      await program.methods
+        .initialize()
+        .accounts({
+          authority: authority.publicKey,
+          mint,
+          vaultConfig,
+          vaultTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.not.equal(undefined);
+    }
+  });
+
+  it("rejects close_position when balance remains", async () => {
+    const userPos = positionPda(user.publicKey);
+    try {
+      await program.methods
+        .closePosition()
+        .accounts({
+          owner: user.publicKey,
+          mint,
+          vaultConfig,
+          userPosition: userPos,
+        })
+        .signers([user])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.be.instanceOf(AnchorError);
+      expect((err as AnchorError).error.errorCode.code).to.equal("PositionNotEmpty");
+    }
+  });
+
+  it("closes empty position after full withdraw", async () => {
+    const userPos = positionPda(user.publicKey);
+    const pos = await program.account.userPosition.fetch(userPos);
+    await program.methods
+      .withdraw(pos.amount)
+      .accounts({
+        owner: user.publicKey,
+        mint,
+        vaultConfig,
+        userPosition: userPos,
+        userTokenAccount: userAta,
+        vaultTokenAccount,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([user])
+      .rpc();
+
+    await program.methods
+      .closePosition()
+      .accounts({
+        owner: user.publicKey,
+        mint,
+        vaultConfig,
+        userPosition: userPos,
+      })
+      .signers([user])
+      .rpc();
+
+    const info = await provider.connection.getAccountInfo(userPos);
+    expect(info).to.equal(null);
+  });
+
+  it("transfer_authority rotates admin; unauthorized fails", async () => {
+    try {
+      await program.methods
+        .transferAuthority()
+        .accounts({
+          authority: attacker.publicKey,
+          newAuthority: attacker.publicKey,
+          vaultConfig,
+        })
+        .signers([attacker])
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.be.instanceOf(AnchorError);
+      expect((err as AnchorError).error.errorCode.code).to.equal("Unauthorized");
+    }
+
+    await program.methods
+      .transferAuthority()
+      .accounts({
+        authority: authority.publicKey,
+        newAuthority: attacker.publicKey,
+        vaultConfig,
+      })
+      .rpc();
+
+    let config = await program.account.vaultConfig.fetch(vaultConfig);
+    expect(config.authority.toBase58()).to.equal(attacker.publicKey.toBase58());
+
+    try {
+      await program.methods
+        .pause()
+        .accounts({
+          authority: authority.publicKey,
+          vaultConfig,
+        })
+        .rpc();
+      expect.fail("should have thrown");
+    } catch (err) {
+      expect(err).to.be.instanceOf(AnchorError);
+      expect((err as AnchorError).error.errorCode.code).to.equal("Unauthorized");
+    }
+
+    await program.methods
+      .pause()
+      .accounts({
+        authority: attacker.publicKey,
+        vaultConfig,
+      })
+      .signers([attacker])
+      .rpc();
+
+    config = await program.account.vaultConfig.fetch(vaultConfig);
+    expect(config.paused).to.equal(true);
+
+    await program.methods
+      .unpause()
+      .accounts({
+        authority: attacker.publicKey,
+        vaultConfig,
+      })
+      .signers([attacker])
+      .rpc();
+
+    await program.methods
+      .transferAuthority()
+      .accounts({
+        authority: attacker.publicKey,
+        newAuthority: authority.publicKey,
+        vaultConfig,
+      })
+      .signers([attacker])
+      .rpc();
+
+    config = await program.account.vaultConfig.fetch(vaultConfig);
+    expect(config.authority.toBase58()).to.equal(authority.publicKey.toBase58());
+    expect(config.paused).to.equal(false);
+  });
 });

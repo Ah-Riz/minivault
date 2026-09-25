@@ -137,6 +137,25 @@ pub mod mini_vault {
         });
         Ok(())
     }
+
+    pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
+        require!(
+            ctx.accounts.user_position.amount == 0,
+            VaultError::PositionNotEmpty
+        );
+        Ok(())
+    }
+
+    pub fn transfer_authority(ctx: Context<TransferAuthority>) -> Result<()> {
+        let config = &mut ctx.accounts.vault_config;
+        config.authority = ctx.accounts.new_authority.key();
+        emit!(AuthorityEvent {
+            mint: config.mint,
+            old_authority: ctx.accounts.authority.key(),
+            new_authority: config.authority,
+        });
+        Ok(())
+    }
 }
 
 #[event]
@@ -160,6 +179,13 @@ pub struct PauseEvent {
     pub authority: Pubkey,
     pub mint: Pubkey,
     pub paused: bool,
+}
+
+#[event]
+pub struct AuthorityEvent {
+    pub mint: Pubkey,
+    pub old_authority: Pubkey,
+    pub new_authority: Pubkey,
 }
 
 #[account]
@@ -296,6 +322,42 @@ pub struct AdminPause<'info> {
     pub vault_config: Account<'info, VaultConfig>,
 }
 
+#[derive(Accounts)]
+pub struct ClosePosition<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub mint: Account<'info, Mint>,
+    #[account(
+        seeds = [b"vault_config", mint.key().as_ref()],
+        bump = vault_config.bump,
+        has_one = mint @ VaultError::MintMismatch
+    )]
+    pub vault_config: Account<'info, VaultConfig>,
+    #[account(
+        mut,
+        seeds = [b"user_position", mint.key().as_ref(), owner.key().as_ref()],
+        bump = user_position.bump,
+        has_one = owner @ VaultError::Unauthorized,
+        constraint = user_position.mint == mint.key() @ VaultError::MintMismatch,
+        close = owner
+    )]
+    pub user_position: Account<'info, UserPosition>,
+}
+
+#[derive(Accounts)]
+pub struct TransferAuthority<'info> {
+    pub authority: Signer<'info>,
+    /// CHECK: new admin pubkey only; no further constraints
+    pub new_authority: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        seeds = [b"vault_config", vault_config.mint.as_ref()],
+        bump = vault_config.bump,
+        has_one = authority @ VaultError::Unauthorized
+    )]
+    pub vault_config: Account<'info, VaultConfig>,
+}
+
 #[error_code]
 pub enum VaultError {
     #[msg("Vault is paused")]
@@ -312,4 +374,6 @@ pub enum VaultError {
     VaultTokenMismatch,
     #[msg("Math overflow")]
     MathOverflow,
+    #[msg("Position still has a balance")]
+    PositionNotEmpty,
 }

@@ -281,6 +281,57 @@ export async function unpauseVault(
   return sendTx(connection, wallet, [ix]);
 }
 
+export async function closePosition(
+  connection: Connection,
+  wallet: AnchorWallet,
+  mint: PublicKey = MINT
+): Promise<string> {
+  const provider = getProvider(connection, wallet);
+  const program = getProgram(provider);
+  const owner = wallet.publicKey;
+  const [vaultConfig] = vaultConfigPda(mint);
+  const [userPosition] = userPositionPda(owner, mint);
+  const ix = await program.methods
+    .closePosition()
+    .accountsPartial({ owner, mint, vaultConfig, userPosition })
+    .instruction();
+  return sendTx(connection, wallet, [ix]);
+}
+
+export async function transferAuthority(
+  connection: Connection,
+  wallet: AnchorWallet,
+  newAuthority: PublicKey,
+  mint: PublicKey = MINT
+): Promise<string> {
+  const provider = getProvider(connection, wallet);
+  const program = getProgram(provider);
+  const [vaultConfig] = vaultConfigPda(mint);
+  const ix = await program.methods
+    .transferAuthority()
+    .accountsPartial({
+      authority: wallet.publicKey,
+      newAuthority,
+      vaultConfig,
+    })
+    .instruction();
+  return sendTx(connection, wallet, [ix]);
+}
+
+export async function fetchUserAtaBalance(
+  connection: Connection,
+  owner: PublicKey,
+  mint: PublicKey = MINT
+): Promise<string> {
+  const ata = getAssociatedTokenAddressSync(mint, owner);
+  try {
+    const acct = await getAccount(connection, ata);
+    return acct.amount.toString();
+  } catch {
+    return "0";
+  }
+}
+
 export async function initializeVault(
   connection: Connection,
   wallet: AnchorWallet,

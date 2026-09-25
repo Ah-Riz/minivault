@@ -120,7 +120,9 @@ Cloudflare hosts the Next.js app only. The Solana program still deploys with Anc
 2. Withdraw deposited tokens
 3. Track per-user balances (`UserPosition` PDA)
 4. Admin pause / unpause
-5. On-chain events (`DepositEvent`, `WithdrawEvent`, `PauseEvent`)
+5. On-chain events (`DepositEvent`, `WithdrawEvent`, `PauseEvent`, `AuthorityEvent`)
+6. Close empty position (reclaim rent)
+7. Transfer vault authority
 
 ## Out of scope
 

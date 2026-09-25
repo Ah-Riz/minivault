@@ -1,18 +1,11 @@
 "use client";
 
 import type { PositionView, VaultView } from "../lib/vault";
+import { formatRaw } from "../lib/amount";
 
 function short(pk: string) {
   if (!pk || pk.length < 8) return "—";
   return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
-}
-
-function formatRaw(raw: string, decimals = 6): string {
-  const n = BigInt(raw || "0");
-  const base = BigInt(10) ** BigInt(decimals);
-  const whole = n / base;
-  const frac = (n % base).toString().padStart(decimals, "0").replace(/0+$/, "");
-  return frac ? `${whole}.${frac}` : whole.toString();
 }
 
 export function VaultStatus({

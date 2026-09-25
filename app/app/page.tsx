@@ -9,7 +9,13 @@ import { NetworkBadge } from "../components/NetworkBadge";
 import { VaultStatus } from "../components/VaultStatus";
 import { WithdrawForm } from "../components/WithdrawForm";
 import { CLUSTER, MINT, PROGRAM_ID, TOKEN_SYMBOL, USDC_FAUCET_URL, explorerAddressUrl } from "../lib/constants";
-import { fetchPosition, fetchVault, type PositionView, type VaultView } from "../lib/vault";
+import {
+  fetchPosition,
+  fetchUserAtaBalance,
+  fetchVault,
+  type PositionView,
+  type VaultView,
+} from "../lib/vault";
 
 function short(pk: string) {
   return `${pk.slice(0, 4)}…${pk.slice(-4)}`;
@@ -20,14 +26,21 @@ export default function HomePage() {
   const { publicKey, connected } = useWallet();
   const [vault, setVault] = useState<VaultView | null>(null);
   const [position, setPosition] = useState<PositionView | null>(null);
+  const [walletBal, setWalletBal] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const v = await fetchVault(connection);
     setVault(v);
     if (publicKey) {
-      setPosition(await fetchPosition(connection, publicKey));
+      const [pos, bal] = await Promise.all([
+        fetchPosition(connection, publicKey),
+        fetchUserAtaBalance(connection, publicKey),
+      ]);
+      setPosition(pos);
+      setWalletBal(bal);
     } else {
       setPosition(null);
+      setWalletBal(null);
     }
   }, [connection, publicKey]);
 
@@ -114,16 +127,24 @@ export default function HomePage() {
         <section className="grid gap-6 sm:grid-cols-2">
           <div className="elev space-y-4 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">Deposit</h2>
-            <DepositForm disabled={vault?.paused || !vault?.exists} onDone={refresh} />
+            <DepositForm
+              disabled={vault?.paused || !vault?.exists}
+              walletBalanceRaw={walletBal}
+              onDone={refresh}
+            />
           </div>
           <div className="elev space-y-4 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">Withdraw</h2>
-            <WithdrawForm disabled={vault?.paused || !vault?.exists} onDone={refresh} />
+            <WithdrawForm
+              disabled={vault?.paused || !vault?.exists}
+              positionRaw={position?.amount}
+              onDone={refresh}
+            />
           </div>
         </section>
 
         <section className="elev p-6">
-          <AdminControls vault={vault} onDone={refresh} />
+          <AdminControls vault={vault} position={position} onDone={refresh} />
         </section>
       </main>
     </div>

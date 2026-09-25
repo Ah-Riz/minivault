@@ -14,6 +14,98 @@ export type MiniVault = {
   },
   "instructions": [
     {
+      "name": "closePosition",
+      "discriminator": [
+        123,
+        134,
+        81,
+        0,
+        49,
+        68,
+        98,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "userPosition"
+          ]
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "vaultConfig"
+          ]
+        },
+        {
+          "name": "vaultConfig",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "userPosition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "deposit",
       "discriminator": [
         242,
@@ -336,6 +428,62 @@ export type MiniVault = {
       "args": []
     },
     {
+      "name": "transferAuthority",
+      "discriminator": [
+        48,
+        169,
+        76,
+        72,
+        229,
+        180,
+        55,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "vaultConfig"
+          ]
+        },
+        {
+          "name": "newAuthority"
+        },
+        {
+          "name": "vaultConfig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault_config.mint",
+                "account": "vaultConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "unpause",
       "discriminator": [
         169,
@@ -532,6 +680,19 @@ export type MiniVault = {
   ],
   "events": [
     {
+      "name": "authorityEvent",
+      "discriminator": [
+        162,
+        156,
+        54,
+        90,
+        198,
+        119,
+        178,
+        22
+      ]
+    },
+    {
       "name": "depositEvent",
       "discriminator": [
         120,
@@ -606,9 +767,34 @@ export type MiniVault = {
       "code": 6006,
       "name": "mathOverflow",
       "msg": "Math overflow"
+    },
+    {
+      "code": 6007,
+      "name": "positionNotEmpty",
+      "msg": "Position still has a balance"
     }
   ],
   "types": [
+    {
+      "name": "authorityEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "oldAuthority",
+            "type": "pubkey"
+          },
+          {
+            "name": "newAuthority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
     {
       "name": "depositEvent",
       "type": {

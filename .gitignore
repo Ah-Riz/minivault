@@ -31,3 +31,4 @@ id.json
 # Logs
 *.log
 yarn-error.log
+*.tsbuildinfo

@@ -23,7 +23,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       NEXT_PUBLIC_RPC_URL: https://api.devnet.solana.com
       NEXT_PUBLIC_PROGRAM_ID: Eg1fXRg5AQ2P9834Lr2mTkjr9Zy5dMG6HGiqLLJmfoRd
-      NEXT_PUBLIC_MINT: 5vg3tMYz1gYRxCa2VQe3pucqw2hjcTedi4uDWUTH4nMQ
+      NEXT_PUBLIC_MINT: 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
     steps:
       - name: Checkout
         uses: actions/checkout@v4
