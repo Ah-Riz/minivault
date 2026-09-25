@@ -23,12 +23,30 @@ export function WithdrawForm({
   const [amount, setAmount] = useState("0.5");
   const [tx, setTx] = useState<TxState>({ status: "idle" });
 
+  const pos = positionRaw ?? "0";
+  const posRaw = BigInt(pos || "0");
+  const emptyPosition = posRaw === 0n;
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!wallet.publicKey || !wallet.signTransaction) return;
+
+    const amountRaw = toRaw(amount, decimals);
+    if (amountRaw.isZero() || amountRaw.isNeg()) {
+      setTx({ status: "error", message: "Amount must be greater than zero." });
+      return;
+    }
+    if (BigInt(amountRaw.toString()) > posRaw) {
+      setTx({
+        status: "error",
+        message: `Not enough vault balance. Position: ${formatRaw(pos, decimals)} ${TOKEN_SYMBOL}.`,
+      });
+      return;
+    }
+
     try {
       setTx({ status: "pending" });
-      const sig = await withdraw(connection, wallet as AnchorWallet, toRaw(amount, decimals));
+      const sig = await withdraw(connection, wallet as AnchorWallet, amountRaw);
       setTx({ status: "success", signature: sig });
       onDone?.();
     } catch (err) {
@@ -38,8 +56,6 @@ export function WithdrawForm({
       });
     }
   }
-
-  const pos = positionRaw ?? "0";
 
   return (
     <form onSubmit={onSubmit} className="space-y-3">
@@ -51,7 +67,7 @@ export function WithdrawForm({
             <button
               type="button"
               className="ml-2 font-semibold text-tosca-700 underline underline-offset-2"
-              disabled={disabled || !wallet.connected}
+              disabled={disabled || !wallet.connected || emptyPosition}
               onClick={() => setAmount(formatRaw(pos, decimals))}
             >
               Max
@@ -69,7 +85,7 @@ export function WithdrawForm({
       </label>
       <button
         type="submit"
-        disabled={disabled || !wallet.connected || tx.status === "pending"}
+        disabled={disabled || !wallet.connected || tx.status === "pending" || emptyPosition}
         className="btn btn-secondary"
       >
         Withdraw

@@ -48,19 +48,36 @@ function isBlockhashError(err: unknown): boolean {
 
 /** Format wallet/RPC errors for the UI (include logs when present). */
 export async function formatTxError(err: unknown, connection?: Connection): Promise<string> {
+  const asText = (msg: string, logs?: string[]) => {
+    const blob = `${msg}\n${(logs ?? []).join("\n")}`;
+    if (
+      /InsufficientBalance|Insufficient balance/i.test(blob) ||
+      /custom program error: 0x1773\b/i.test(blob) ||
+      /Error Number: 6003/.test(blob)
+    ) {
+      return "Not enough vault balance for this withdraw. Lower the amount or use Max.";
+    }
+    if (/insufficient funds/i.test(blob) || /custom program error: 0x1\b/i.test(blob)) {
+      return "Insufficient USDC in your wallet for this deposit. Fund Devnet USDC, then try again.";
+    }
+    return null;
+  };
+
   if (err instanceof SendTransactionError) {
     try {
       const logs = connection
         ? await err.getLogs(connection)
         : ((err as SendTransactionError & { logs?: string[] }).logs ?? []);
+      const friendly = asText(err.message, logs ?? undefined);
+      if (friendly) return friendly;
       if (logs?.length) return `${err.message}\nLogs:\n${logs.join("\n")}`;
     } catch {
       /* ignore */
     }
-    return err.message;
+    return asText(err.message) ?? err.message;
   }
-  if (err instanceof Error) return err.message;
-  return String(err);
+  if (err instanceof Error) return asText(err.message) ?? err.message;
+  return asText(String(err)) ?? String(err);
 }
 
 /**
