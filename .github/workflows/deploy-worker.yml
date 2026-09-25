@@ -39,14 +39,31 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Verify Cloudflare token can see this account
+      - name: Verify Cloudflare token can edit Workers
         run: |
           code=$(curl -sS -o /tmp/cf.json -w "%{http_code}" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/services")
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts")
           echo "HTTP $code"
-          head -c 500 /tmp/cf.json; echo
+          cat /tmp/cf.json
           test "$code" = "200"
+          # Empty list + later "No access to the specified service" means the
+          # token lacks Workers Scripts Edit on this account (or is resource-filtered).
+          python3 - <<'PY'
+          import json, sys
+          data = json.load(open("/tmp/cf.json"))
+          scripts = data.get("result") or []
+          names = [s.get("id") or s.get("name") for s in scripts]
+          print("scripts:", names)
+          if "minivault" not in names:
+              print(
+                  "::error::Token cannot see worker 'minivault'. Recreate "
+                  "CLOUDFLARE_API_TOKEN with template Edit Cloudflare Workers, "
+                  "Account Resources = this account, Workers Scripts = Edit, "
+                  "include All workers (not a filtered subset)."
+              )
+              sys.exit(1)
+          PY
 
       - name: Deploy to Cloudflare Workers
         run: npm run deploy
