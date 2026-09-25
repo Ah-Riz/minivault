@@ -32,3 +32,6 @@ id.json
 *.log
 yarn-error.log
 *.tsbuildinfo
+
+# Local knowledge graph
+graphify-out/
